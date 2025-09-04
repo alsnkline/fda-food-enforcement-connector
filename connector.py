@@ -179,9 +179,10 @@ def update(configuration: dict, state: dict):
             skip += params["limit"]
             
             # Checkpoint after each batch to ensure progress is saved
-            current_time = datetime.now(timezone.utc).isoformat()
+            # Use the latest report_date from the current batch for incremental sync
+            latest_report_date = get_latest_report_date(data["results"])
             new_state = {
-                "last_sync_date": current_time,
+                "last_sync_date": latest_report_date,
                 "total_processed": total_processed,
                 "last_cursor": skip
             }
@@ -192,9 +193,15 @@ def update(configuration: dict, state: dict):
             time.sleep(0.25)
         
         # Final checkpoint
-        current_time = datetime.now(timezone.utc).isoformat()
+        # Use the latest report_date from the last batch for incremental sync
+        if 'data' in locals() and data.get("results"):
+            latest_report_date = get_latest_report_date(data["results"])
+        else:
+            # Fallback to current time if no data was processed
+            latest_report_date = datetime.now(timezone.utc).isoformat()
+        
         final_state = {
-            "last_sync_date": current_time,
+            "last_sync_date": latest_report_date,
             "total_processed": total_processed,
             "last_cursor": skip
         }
@@ -206,6 +213,34 @@ def update(configuration: dict, state: dict):
         # In case of an exception, log the error and raise a runtime error
         log.severe(f"Failed to sync FDA Food Enforcement data: {str(e)}")
         raise RuntimeError(f"Failed to sync data: {str(e)}")
+
+
+def get_latest_report_date(records: List[Dict[str, Any]]) -> str:
+    """
+    Extract the latest report_date from a batch of records.
+    This is used for proper incremental sync cursor management.
+    Args:
+        records: List of FDA API records
+    Returns:
+        Latest report_date as ISO string, or current time if no valid dates found
+    """
+    latest_date = None
+    
+    for record in records:
+        report_date = record.get("report_date")
+        if report_date:
+            # FDA dates are in YYYYMMDD format, convert to ISO
+            try:
+                if len(report_date) == 8:  # YYYYMMDD format
+                    year, month, day = report_date[:4], report_date[4:6], report_date[6:8]
+                    iso_date = f"{year}-{month}-{day}T00:00:00Z"
+                    if latest_date is None or iso_date > latest_date:
+                        latest_date = iso_date
+            except (ValueError, IndexError):
+                continue
+    
+    # Return latest date found, or current time as fallback
+    return latest_date if latest_date else datetime.now(timezone.utc).isoformat()
 
 
 def make_api_request_with_retry(base_url: str, params: dict, max_retries: int = 3) -> Optional[requests.Response]:
