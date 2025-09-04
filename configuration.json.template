@@ -1,0 +1,6 @@
+{
+  "api_key": "YOUR_FDA_API_KEY_HERE",
+  "limit": "10",
+  "max_records": "100",
+  "sync_mode": "incremental"
+}

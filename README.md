@@ -50,6 +50,8 @@ The connector requires the following configuration parameters in `configuration.
 }
 ```
 
+**Note**: A template configuration file `configuration.json.template` is provided. Copy it to `configuration.json` and update with your actual API key.
+
 ### Configuration Parameters
 
 - **api_key** (required): Your FDA API key. Get your free key at [open.fda.gov](https://open.fda.gov/apis/)

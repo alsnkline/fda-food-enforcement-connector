@@ -44,8 +44,8 @@ Thumbs.db
 # Logs
 *.log
 
-# Configuration (contains API keys)
-configuration.json
+# Configuration (contains API keys) - uncomment if you want to keep API keys private
+# configuration.json
 
 # Test files (optional - you might want to keep these)
 # test_connector.py
